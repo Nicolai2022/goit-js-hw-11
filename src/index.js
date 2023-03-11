@@ -1,118 +1,118 @@
 
-import { Notify } from 'notiflix/build/notiflix-notify-aio';
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
 import './css/styles.css';
-// import Notiflix from 'notiflix';
+import Notiflix from 'notiflix';
 const axios = require('axios').default;
 import fetchImages from './cards-service';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 
-
-
-
-
-
-const { searchForm, gallery, loadMoreBtn, endCollectionText } = {
-  searchForm: document.querySelector('.search-form'),
-  gallery: document.querySelector('.gallery'),
-  loadMoreBtn: document.querySelector('.load-more'),
-  endCollectionText: document.querySelector('.end-collection-text'),
-};
-
-function renderCardImage(arr) {
-  const markup = arr.map(item => cardTemplate(item)).join('');
-  gallery.insertAdjacentHTML('beforeend', markup);
-}
-
-let lightbox = new SimpleLightbox('.photo-card a', {
-  captions: true,
-  captionsData: 'alt',
+let lightbox = new SimpleLightbox('.gallery a', {
   captionDelay: 250,
+  animationSpeed: 250,
+  fadeSpeed: 200,
 });
 
-let currentPage = 1;
-let currentHits = 0;
-let searchQuery = '';
+const searchForm = document.querySelector('#search-form');
+const submitBtn = document.querySelector('[type="submit"]');
+const gallery = document.querySelector('.gallery');
+const loadMoreBtn = document.querySelector('.load-more');
+loadMoreBtn.style.display = 'none';
 
-searchForm.addEventListener('submit', onSubmitSearchForm);
+const cardsApiService = new CardsApiService();
 
-async function onSubmitSearchForm(e) {
+searchForm.addEventListener('submit', onSearch);
+loadMoreBtn.addEventListener('click', onLoadMore);
+
+function onSearch(e) {
   e.preventDefault();
-  searchQuery = e.currentTarget.searchQuery.value;
-  currentPage = 1;
 
-  if (searchQuery === '') {
+  cardsApiService.query = e.currentTarget.elements.searchQuery.value.trim();
+
+  if (cardsApiService.query === '') {
+    Notiflix.Notify.info('Enter your request in the search');
     return;
   }
 
-  const response = await fetchImages(searchQuery, currentPage);
-  currentHits = response.hits.length;
+  cardsApiService.resetPage();
 
-  if (response.totalHits > 40) {
-    loadMoreBtn.classList.remove('is-hidden');
-  } else {
-    loadMoreBtn.classList.add('is-hidden');
-  }
+  cardsApiService.fetchCards().then(data => {
+    if (data.hits.length === 0) {
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
+      loadMoreBtn.style.display = 'none';
+      return;
+    } else {
+      Notiflix.Notify.info(`Hooray! We found ${data.totalHits} images.`);
+      loadMoreBtn.style.display = 'flex';
+    }
 
-  try {
-    if (response.totalHits > 0) {
-      Notify.success(`Hooray! We found ${response.totalHits} images.`);
-      gallery.innerHTML = '';
-      renderCardImage(response.hits);
+    appendCardsMarkup(data);
+    lightbox.refresh();
+  });
+
+  clearCardsGallery();
+}
+
+function onLoadMore() {
+  cardsApiService.fetchCards().then(data => {
+    console.log(cardsApiService.currentPage(data));
+    if (cardsApiService.currentPage(data) < Math.ceil(data.totalHits / 40)) {
+      appendCardsMarkup(data);
       lightbox.refresh();
-      endCollectionText.classList.add('is-hidden');
-
-      const { height: cardHeight } = document
-        .querySelector('.gallery')
-        .firstElementChild.getBoundingClientRect();
-
-      window.scrollBy({
-        top: cardHeight * -100,
-        behavior: 'smooth',
-      });
+    } else {
+      Notiflix.Notify.info(
+        "We're sorry, but you've reached the end of search results."
+      );
+      loadMoreBtn.style.display = 'none';
     }
-
-    if (response.totalHits === 0) {
-      gallery.innerHTML = '';
-      Notify.failure('Sorry, there are no images matching your search query. Please try again.');
-      loadMoreBtn.classList.add('is-hidden');
-      endCollectionText.classList.add('is-hidden');
-    }
-  } catch (error) {
-    console.log(error);
-  }
+  });
 }
 
-loadMoreBtn.addEventListener('click', onClickLoadMoreBtn);
-
-async function onClickLoadMoreBtn() {
-  currentPage += 1;
-  const response = await fetchImages(searchQuery, currentPage);
-  renderCardImage(response.hits);
-  lightbox.refresh();
-  currentHits += response.hits.length;
-
-  if (currentHits === response.totalHits) {
-    loadMoreBtn.classList.add('is-hidden');
-    endCollectionText.classList.remove('is-hidden');
-  }
+function appendCardsMarkup(data) {
+  const hits = data.hits;
+  const markup = hits
+    .map(
+      ({
+        webformatURL,
+        largeImageURL,
+        tags,
+        likes,
+        views,
+        comments,
+        downloads,
+      }) => {
+        return `
+      <div class="photo-card">
+    <a class="gallery__link" href="${largeImageURL}">
+    <img class="img" src="${webformatURL}" alt="${tags}" loading="lazy" />
+    </a>
+  <div class="info">
+    <p class="info-item">
+      <b>Likes</b>
+      ${likes}
+    </p>
+    <p class="info-item">
+      <b>Views</b>
+      ${views}
+    </p>
+    <p class="info-item">
+      <b>Comments</b>
+      ${comments}
+    </p>
+    <p class="info-item">
+      <b> Downloads</b>
+      ${downloads}
+    </p>
+  </div>
+</div>`;
+      }
+    )
+    .join('');
+  gallery.insertAdjacentHTML('beforeend', markup);
 }
 
-// My infinite scroll --test
+function clearCardsGallery() {
+  gallery.innerHTML = '';
+}
 
-// window.addEventListener('scroll', throttle(onScrollWindow, 500));
-// async function onScrollWindow() {
-//   const documentRect = document.documentElement.getBoundingClientRect();
-//   const heightBeforeLoading = 300;
-//   if (documentRect.bottom < document.documentElement.clientHeight + heightBeforeLoading) {
-//     currentPage += 1;
-//     const response = await fetchImages(searchQuery, currentPage);
-//     renderCardImage(response.hits);
-//     lightbox.refresh();
-//     currentHits += response.hits.length;
-
-//     if (currentHits === response.totalHits) {
-//       endCollectionText.classList.remove('is-hidden');
-//     }
-//   }
-// }
