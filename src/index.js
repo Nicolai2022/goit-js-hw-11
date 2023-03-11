@@ -1,9 +1,9 @@
 
-// import { Notify } from 'notiflix/build/notiflix-notify-aio';
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 import './css/styles.css';
-import Notiflix from 'notiflix';
+// import Notiflix from 'notiflix';
 const axios = require('axios').default;
 import fetchImages from './cards-service';
 
