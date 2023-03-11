@@ -1,8 +1,7 @@
-
 import './css/styles.css';
 import Notiflix from 'notiflix';
 const axios = require('axios').default;
-import fetchImages from './cards-service';
+import CardsApiService from './cards-service';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
@@ -115,4 +114,3 @@ function appendCardsMarkup(data) {
 function clearCardsGallery() {
   gallery.innerHTML = '';
 }
-
