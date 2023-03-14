@@ -14,10 +14,10 @@ body {
 
 .search-form {
   display: flex;
-  gap: 15px;
+  gap: 5px;
   justify-content: center;
 
-  padding: 15px;
+  padding: 10px;
   background-color: #05755d;
 }
 
@@ -64,10 +64,8 @@ body {
 
 .img {
   display: block;
-  /* width: 300px;
-  height: 200px; */
-  max-width: 100%;
-  height: auto;
+  width: 300px;
+  height: 200px;
 }
 
 .load-more {
